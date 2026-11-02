@@ -1,137 +1,165 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Govt Exam Photo & Signature Resizer</title>
+  <title>ExamPhoto Studio | Smart Image Resizer & Compressor</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
 
-  <div class="app-container">
+  <!-- Background Animated Gradient Spheres -->
+  <div class="bg-gradient-circle circle-1"></div>
+  <div class="bg-gradient-circle circle-2"></div>
+
+  <div class="app-card">
     
-    <!-- Clean Header -->
+    <!-- Top Bar -->
     <header class="app-header">
-      <div>
-        <h1>Exam Photo & Signature Resizer</h1>
-        <p>FOR ssc, Banking, UPSC, Railway exams online image compressor</p>
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        </div>
+        <div>
+          <h1 class="gradient-text">ExamPhoto Studio</h1>
+          <p class="subtitle">Quick Dimension &amp; File Size Optimizer for Govt Aspirants</p>
+        </div>
       </div>
-      
+      <button id="soundToggle" class="sound-chip" data-hover title="Toggle Audio Feedback">
+        <span class="sound-dot"></span> SFX: <span id="soundStatus">ACTIVE</span>
+      </button>
     </header>
 
-    <div class="main-layout">
+    <div class="content-grid">
       
-      <!-- Left Side: Upload & Preview -->
-      <div class="preview-section">
-        <div class="upload-card" id="dropArea" data-hover>
+      <!-- Left Column: Upload & Live Display -->
+      <section class="visual-panel">
+        <div class="drop-surface" id="dropArea" data-hover>
           <input type="file" id="fileInput" accept="image/jpeg, image/png, image/jpg" hidden>
           
-          <div id="uploadPrompt" class="upload-prompt">
-            <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-            </svg>
-            <h3>Photo ya Signature Chunein</h3>
-            <p>Click karein ya file ko yahan drag karein</p>
-            <span class="file-hint">JPG ya PNG format</span>
+          <div id="uploadPrompt" class="prompt-content">
+            <div class="floating-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+            </div>
+            <h3>Upload Photo or Signature</h3>
+            <p>Drag and drop image here or click to browse</p>
+            <span class="badge">JPG, JPEG, PNG</span>
           </div>
 
-          <div id="imageWrapper" class="image-wrapper" style="display: none;">
-            <img id="previewImg" alt="Preview Image">
+          <div id="imageFrame" class="image-frame" style="display: none;">
+            <img id="previewImg" alt="Preview Result">
           </div>
         </div>
 
-        <!-- File Details Card -->
-        <div class="file-info-card" id="fileInfoCard" style="display: none;">
-          <div class="info-item">
-            <span>Original Size:</span>
-            <strong id="origSize">0 KB</strong>
+        <!-- Real-Time Metrics -->
+        <div class="metrics-grid" id="metricsPanel" style="display: none;">
+          <div class="metric-card">
+            <span class="label">Original Size</span>
+            <strong id="origSize">--</strong>
           </div>
-          <div class="info-item">
-            <span>Dimensions:</span>
-            <strong id="origDim">0 x 0 px</strong>
+          <div class="metric-card">
+            <span class="label">Dimensions</span>
+            <strong id="origDim">--</strong>
           </div>
-          <div class="info-item highlight">
-            <span>Output Size:</span>
-            <strong id="outputSize">Ready</strong>
+          <div class="metric-card accent">
+            <span class="label">Target Status</span>
+            <strong id="outputStatus">Ready</strong>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Right Side: Clean Control Form -->
-      <div class="controls-section">
+      <!-- Right Column: Configurations -->
+      <section class="controls-panel">
         
         <!-- Preset Dropdown -->
-        <div class="form-group">
-          <label>Exam Preset (Direct Setting):</label>
-          <select id="presetSelect" class="form-control" data-hover>
-            <option value="custom">Custom (more hisabe adjust heba)</option>
-            <option value="ssc_photo">SSC CGL/CHSL/MTS Photo (20-50 KB | 200x230 px)</option>
+        <div class="field-box">
+          <label class="field-label">Exam Preset Template</label>
+          <select id="presetSelect" class="styled-select" data-hover>
+            <option value="custom">Custom Dimensions</option>
+            <option value="ssc_photo">SSC CGL / CHSL / MTS Photo (20-50 KB | 200x230 px)</option>
             <option value="ssc_sign">SSC Signature (10-20 KB | 140x60 px)</option>
-            <option value="ibps_photo">IBPS / SBI Bank Photo (20-50 KB | 200x230 px)</option>
+            <option value="ibps_photo">IBPS / SBI Bank PO/Clerk Photo (20-50 KB | 200x230 px)</option>
             <option value="ibps_sign">IBPS / SBI Bank Signature (10-20 KB | 140x60 px)</option>
-            <option value="upsc_photo">UPSC Photo (20-100 KB | 350x350 px)</option>
+            <option value="upsc_photo">UPSC Civil Services Photo (20-100 KB | 350x350 px)</option>
+            <option value="rrb_photo">Railway RRB Photo (20-50 KB | 240x320 px)</option>
           </select>
         </div>
 
-        <!-- Dimension Inputs -->
-        <div class="form-row">
-          <div class="form-group">
-            <label>Width (Pixels):</label>
-            <input type="number" id="imgWidth" class="form-control" placeholder="200" data-hover>
+        <!-- Dimensions -->
+        <div class="dual-fields">
+          <div class="field-box">
+            <label class="field-label">Width (px)</label>
+            <input type="number" id="imgWidth" class="styled-input" placeholder="200" data-hover>
           </div>
-          <div class="form-group">
-            <label>Height (Pixels):</label>
-            <input type="number" id="imgHeight" class="form-control" placeholder="230" data-hover>
+          <div class="field-box">
+            <label class="field-label">Height (px)</label>
+            <input type="number" id="imgHeight" class="styled-input" placeholder="230" data-hover>
           </div>
         </div>
 
-        <!-- Ratio & Target KB -->
-        <div class="form-row align-center">
-          <div class="form-group">
-            <label>Max Size Limit (KB):</label>
-            <input type="number" id="targetKB" class="form-control" value="50" placeholder="50" data-hover>
+        <!-- Target Size & Aspect Ratio -->
+        <div class="dual-fields align-end">
+          <div class="field-box">
+            <label class="field-label">Max Target Limit (KB)</label>
+            <input type="number" id="targetKB" class="styled-input" value="50" placeholder="50" data-hover>
           </div>
-          <div class="checkbox-wrapper">
-            <label class="checkbox-label" data-hover>
+          <div class="checkbox-container">
+            <label class="toggle-control" data-hover>
               <input type="checkbox" id="aspectRatio" checked>
-              <span>Maintain Aspect Ratio</span>
+              <span class="toggle-slider"></span>
+              <span class="toggle-text">Lock Ratio</span>
             </label>
           </div>
         </div>
 
-        <!-- Useful Image Fixes -->
-        <div class="tools-box">
-          <span class="tools-title">Image Adjustments</span>
-          
-          <div class="sliders-row">
-            <div class="slider-group">
-              <label>Brightness: <span id="brightVal">100%</span></label>
-              <input type="range" id="brightness" min="60" max="150" value="100">
+        <!-- Filter & Adjustment Toolkit -->
+        <div class="toolkit-panel">
+          <div class="toolkit-header">
+            <span>Visual Enhancements</span>
+            <button id="resetAdjustBtn" class="reset-link" data-hover>Reset</button>
+          </div>
+
+          <div class="sliders-wrap">
+            <div class="slider-item">
+              <div class="slider-labels">
+                <span>Brightness</span>
+                <span id="brightVal">100%</span>
+              </div>
+              <input type="range" id="brightness" min="60" max="150" value="100" class="gradient-slider">
             </div>
-            <div class="slider-group">
-              <label>Contrast: <span id="contrastVal">100%</span></label>
-              <input type="range" id="contrast" min="60" max="160" value="100">
+            <div class="slider-item">
+              <div class="slider-labels">
+                <span>Contrast</span>
+                <span id="contrastVal">100%</span>
+              </div>
+              <input type="range" id="contrast" min="60" max="170" value="100" class="gradient-slider">
             </div>
           </div>
 
-          <div class="quick-btns">
-            <button id="cleanSignBtn" class="pill-btn" data-hover>Clean Signature (Pure White Paper)</button>
-            <button id="rotateBtn" class="pill-btn" data-hover>Rotate 90°</button>
-            <button id="resetAdjustBtn" class="pill-btn text-btn" data-hover>Reset</button>
+          <div class="chips-group">
+            <button id="cleanSignBtn" class="action-chip" data-hover>
+              ✨ Clean Signature Background
+            </button>
+            <button id="rotateBtn" class="action-chip" data-hover>
+              ⟳ Rotate 90°
+            </button>
           </div>
         </div>
 
-        <!-- Final Buttons -->
-        <div class="action-buttons">
+        <!-- Master Trigger Buttons -->
+        <div class="action-bar">
           <button id="processBtn" class="btn btn-primary" data-hover>
-            Compress &amp; Resize
+            Compress &amp; Process
           </button>
-          <button id="downloadBtn" class="btn btn-success" disabled data-hover>
-            Download JPEG Photo
+          <button id="downloadBtn" class="btn btn-download" disabled data-hover>
+            Download JPEG
           </button>
         </div>
 
-      </div>
+      </section>
 
     </div>
 
