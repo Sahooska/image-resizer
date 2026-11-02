@@ -1,57 +1,71 @@
 /* ========================================================
-   1. SOUND ENGINE (GTA + Custom SFX with Built-in Fallback)
+   1. PROCEDURAL SOUND SYNTHESIZER (Pure Web Audio API)
    ======================================================== */
-const SoundEngine = {
+const AudioSynth = {
   enabled: true,
-
-  tracks: {
-    hover: new Audio('sounds/hover.mp3'),
-    click: new Audio('sounds/click.mp3'),
-    process: new Audio('sounds/process.mp3'),
-    submit: new Audio('sounds/submit.mp3') // GTA Mission Passed sound
-  },
-
   ctx: null,
 
-  initAudioContext() {
+  init() {
     if (!this.ctx) {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      this.ctx = new AudioCtx();
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      this.ctx = new AudioContext();
     }
   },
 
-  playFallback(freq, type, duration) {
+  play(type) {
     if (!this.enabled) return;
-    try {
-      this.initAudioContext();
-      if (this.ctx.state === 'suspended') this.ctx.resume();
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-      gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start();
-      osc.stop(this.ctx.currentTime + duration);
-    } catch (e) {}
-  },
+    this.init();
+    if (this.ctx.state === 'suspended') this.ctx.resume();
 
-  play(name) {
-    if (!this.enabled) return;
-    const sound = this.tracks[name];
-    if (sound && sound.src) {
-      sound.currentTime = 0;
-      sound.play().catch(() => {
-        // Agar audio file nahi mili to clean subtle clicks
-        if (name === 'hover') this.playFallback(500, 'sine', 0.03);
-        if (name === 'click') this.playFallback(800, 'sine', 0.05);
-        if (name === 'process') this.playFallback(350, 'triangle', 0.2);
-        if (name === 'submit') {
-          this.playFallback(523, 'sine', 0.15);
-          setTimeout(() => this.playFallback(659, 'sine', 0.2), 100);
-        }
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    if (type === 'hover') {
+      // Soft high tick
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(620, t);
+      osc.frequency.exponentialRampToValueAtTime(740, t + 0.03);
+      gain.gain.setValueAtTime(0.02, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.03);
+      osc.start(t);
+      osc.stop(t + 0.03);
+    } 
+    else if (type === 'click') {
+      // Clean modern pop
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(420, t);
+      osc.frequency.exponentialRampToValueAtTime(160, t + 0.06);
+      gain.gain.setValueAtTime(0.08, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
+      osc.start(t);
+      osc.stop(t + 0.06);
+    } 
+    else if (type === 'process') {
+      // Sleek ascending confirmation hum
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(280, t);
+      osc.frequency.exponentialRampToValueAtTime(560, t + 0.18);
+      gain.gain.setValueAtTime(0.06, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
+      osc.start(t);
+      osc.stop(t + 0.2);
+    } 
+    else if (type === 'download') {
+      // Pleasant twin-chime chord
+      [523.25, 659.25, 783.99].forEach((freq, idx) => {
+        const chordOsc = this.ctx.createOscillator();
+        const chordGain = this.ctx.createGain();
+        chordOsc.type = 'sine';
+        chordOsc.frequency.setValueAtTime(freq, t + idx * 0.07);
+        chordGain.gain.setValueAtTime(0.05, t + idx * 0.07);
+        chordGain.gain.exponentialRampToValueAtTime(0.0001, t + idx * 0.07 + 0.25);
+        chordOsc.connect(chordGain);
+        chordGain.connect(this.ctx.destination);
+        chordOsc.start(t + idx * 0.07);
+        chordOsc.stop(t + idx * 0.07 + 0.25);
       });
     }
   }
@@ -61,30 +75,65 @@ const SoundEngine = {
 const soundToggle = document.getElementById('soundToggle');
 const soundStatus = document.getElementById('soundStatus');
 soundToggle.addEventListener('click', () => {
-  SoundEngine.enabled = !SoundEngine.enabled;
-  soundStatus.innerText = SoundEngine.enabled ? 'ON' : 'OFF';
-  soundStatus.style.color = SoundEngine.enabled ? '#16a34a' : '#ef4444';
-});
-
-// Add hover & click listeners to all buttons and inputs
-document.querySelectorAll('[data-hover]').forEach((el) => {
-  el.addEventListener('mouseenter', () => SoundEngine.play('hover'));
-  el.addEventListener('click', () => SoundEngine.play('click'));
+  AudioSynth.enabled = !AudioSynth.enabled;
+  soundStatus.innerText = AudioSynth.enabled ? 'ACTIVE' : 'MUTED';
+  soundStatus.parentElement.style.opacity = AudioSynth.enabled ? '1' : '0.6';
 });
 
 /* ========================================================
-   2. DOM ELEMENTS
+   2. INTERACTIVE CLICK BUBBLE BURST PARTICLES
+   ======================================================== */
+const colors = ['#6366f1', '#3b82f6', '#06b6d4', '#10b981', '#a855f7'];
+
+function spawnClickBubbles(x, y) {
+  const particleCount = 8;
+  for (let i = 0; i < particleCount; i++) {
+    const particle = document.createElement('div');
+    particle.className = 'click-particle';
+    
+    const size = Math.floor(Math.random() * 9 + 6);
+    particle.style.width = `${size}px`;
+    particle.style.height = `${size}px`;
+    particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+    particle.style.left = `${x}px`;
+    particle.style.top = `${y}px`;
+
+    const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5);
+    const distance = Math.random() * 45 + 25;
+    const dx = Math.cos(angle) * distance;
+    const dy = Math.sin(angle) * distance;
+
+    particle.style.setProperty('--dx', `${dx}px`);
+    particle.style.setProperty('--dy', `${dy}px`);
+
+    document.body.appendChild(particle);
+    setTimeout(() => particle.remove(), 650);
+  }
+}
+
+// Global click & hover binders
+window.addEventListener('click', (e) => {
+  spawnClickBubbles(e.clientX, e.clientY);
+  AudioSynth.play('click');
+});
+
+document.querySelectorAll('[data-hover]').forEach((el) => {
+  el.addEventListener('mouseenter', () => AudioSynth.play('hover'));
+});
+
+/* ========================================================
+   3. DOM HOOKS & IMAGE WORKFLOW
    ======================================================== */
 const dropArea = document.getElementById('dropArea');
 const fileInput = document.getElementById('fileInput');
 const uploadPrompt = document.getElementById('uploadPrompt');
-const imageWrapper = document.getElementById('imageWrapper');
+const imageFrame = document.getElementById('imageFrame');
 const previewImg = document.getElementById('previewImg');
 
-const fileInfoCard = document.getElementById('fileInfoCard');
+const metricsPanel = document.getElementById('metricsPanel');
 const origSizeText = document.getElementById('origSize');
 const origDimText = document.getElementById('origDim');
-const outputSizeText = document.getElementById('outputSize');
+const outputStatusText = document.getElementById('outputStatus');
 
 const presetSelect = document.getElementById('presetSelect');
 const imgWidth = document.getElementById('imgWidth');
@@ -108,38 +157,39 @@ let originalRatio = 1;
 let rotation = 0;
 let processedBlob = null;
 
-/* ========================================================
-   3. FILE UPLOAD & PREVIEW
-   ======================================================== */
-dropArea.addEventListener('click', () => fileInput.click());
+// Trigger upload file picker
+dropArea.addEventListener('click', (e) => {
+  if (e.target.tagName !== 'INPUT') fileInput.click();
+});
 
-['dragenter', 'dragover'].forEach((eName) => {
-  dropArea.addEventListener(eName, (e) => {
+// Drag & drop interactions
+['dragenter', 'dragover'].forEach((eventName) => {
+  dropArea.addEventListener(eventName, (e) => {
     e.preventDefault();
-    dropArea.style.borderColor = '#2563eb';
-    dropArea.style.background = '#eff6ff';
+    dropArea.style.borderColor = '#6366f1';
+    dropArea.style.background = '#e0e7ff';
   });
 });
 
-['dragleave', 'drop'].forEach((eName) => {
-  dropArea.addEventListener(eName, (e) => {
+['dragleave', 'drop'].forEach((eventName) => {
+  dropArea.addEventListener(eventName, (e) => {
     e.preventDefault();
     dropArea.style.borderColor = '#cbd5e1';
-    dropArea.style.background = '#f8fafc';
+    dropArea.style.background = '';
   });
 });
 
 dropArea.addEventListener('drop', (e) => {
   const file = e.dataTransfer.files[0];
-  if (file) handleFile(file);
+  if (file) handleIncomingFile(file);
 });
 
 fileInput.addEventListener('change', (e) => {
   const file = e.target.files[0];
-  if (file) handleFile(file);
+  if (file) handleIncomingFile(file);
 });
 
-function handleFile(file) {
+function handleIncomingFile(file) {
   const kb = (file.size / 1024).toFixed(1);
   origSizeText.innerText = `${kb} KB`;
 
@@ -149,16 +199,16 @@ function handleFile(file) {
     originalImage.onload = () => {
       previewImg.src = originalImage.src;
       uploadPrompt.style.display = 'none';
-      imageWrapper.style.display = 'flex';
-      fileInfoCard.style.display = 'flex';
+      imageFrame.style.display = 'flex';
+      metricsPanel.style.display = 'grid';
 
       imgWidth.value = originalImage.naturalWidth;
       imgHeight.value = originalImage.naturalHeight;
       originalRatio = originalImage.naturalWidth / originalImage.naturalHeight;
       origDimText.innerText = `${originalImage.naturalWidth} x ${originalImage.naturalHeight} px`;
 
-      outputSizeText.innerText = 'Ready to Compress';
-      outputSizeText.style.color = '#16a34a';
+      outputStatusText.innerText = 'Ready to Process';
+      outputStatusText.parentElement.classList.remove('accent');
       downloadBtn.disabled = true;
       resetAdjustments();
     };
@@ -167,7 +217,7 @@ function handleFile(file) {
 }
 
 /* ========================================================
-   4. PRESET & ASPECT RATIO
+   4. RATIO PRESERVATION & PRESET HANDLING
    ======================================================== */
 imgWidth.addEventListener('input', () => {
   if (aspectRatio.checked && originalRatio) {
@@ -198,54 +248,54 @@ presetSelect.addEventListener('change', (e) => {
     imgHeight.value = 350;
     targetKB.value = 90;
     aspectRatio.checked = true;
+  } else if (val === 'rrb_photo') {
+    imgWidth.value = 240;
+    imgHeight.value = 320;
+    targetKB.value = 45;
+    aspectRatio.checked = false;
   }
 });
 
 /* ========================================================
-   5. IMAGE ADJUSTMENTS (BRIGHTNESS, CONTRAST, CLEAN SIGN)
+   5. VISUAL TUNER (FILTERS & ROTATION)
    ======================================================== */
-function updateLiveFilters() {
+function applyLiveFilters() {
   previewImg.style.transform = `rotate(${rotation}deg)`;
   previewImg.style.filter = `brightness(${brightnessSlider.value}%) contrast(${contrastSlider.value}%)`;
   brightVal.innerText = `${brightnessSlider.value}%`;
   contrastVal.innerText = `${contrastSlider.value}%`;
 }
 
-brightnessSlider.addEventListener('input', updateLiveFilters);
-contrastSlider.addEventListener('input', updateLiveFilters);
+brightnessSlider.addEventListener('input', applyLiveFilters);
+contrastSlider.addEventListener('input', applyLiveFilters);
 
 rotateBtn.addEventListener('click', () => {
   rotation = (rotation + 90) % 360;
-  updateLiveFilters();
+  applyLiveFilters();
 });
 
-// Signature clear (mobile se khinchee signature ko clean white paper banata hai)
 cleanSignBtn.addEventListener('click', () => {
-  brightnessSlider.value = 120;
-  contrastSlider.value = 160;
-  updateLiveFilters();
+  brightnessSlider.value = 125;
+  contrastSlider.value = 165;
+  applyLiveFilters();
 });
 
 function resetAdjustments() {
   rotation = 0;
   brightnessSlider.value = 100;
   contrastSlider.value = 100;
-  updateLiveFilters();
+  applyLiveFilters();
 }
-
 resetAdjustBtn.addEventListener('click', resetAdjustments);
 
 /* ========================================================
-   6. AUTO COMPRESSOR & RESIZE
+   6. BINARY-SEARCH COMPRESSION ENGINE
    ======================================================== */
 processBtn.addEventListener('click', async () => {
-  if (!originalImage.src) {
-    return alert('Pehle koi photo upload karein!');
-  }
+  if (!originalImage.src) return alert('Please upload an image first!');
 
-  SoundEngine.play('process');
-  outputSizeText.innerText = 'Compressing...';
-  outputSizeText.style.color = '#eab308';
+  AudioSynth.play('process');
+  outputStatusText.innerText = 'Compressing...';
   downloadBtn.disabled = true;
 
   const targetW = parseInt(imgWidth.value) || originalImage.naturalWidth;
@@ -263,17 +313,13 @@ processBtn.addEventListener('click', async () => {
     canvas.height = targetH;
   }
 
-  // Draw image with adjustments
   ctx.filter = `brightness(${brightnessSlider.value}%) contrast(${contrastSlider.value}%)`;
   ctx.translate(canvas.width / 2, canvas.height / 2);
   ctx.rotate((rotation * Math.PI) / 180);
   ctx.drawImage(originalImage, -targetW / 2, -targetH / 2, targetW, targetH);
 
-  // Binary Search to get exact size under target KB
-  let minQ = 0.02;
-  let maxQ = 0.98;
-  let bestBlob = null;
-
+  // Binary search for exact target KB
+  let minQ = 0.02, maxQ = 0.98, bestBlob = null;
   for (let i = 0; i < 9; i++) {
     const midQ = (minQ + maxQ) / 2;
     const blob = await new Promise((res) => canvas.toBlob((b) => res(b), 'image/jpeg', midQ));
@@ -287,24 +333,22 @@ processBtn.addEventListener('click', async () => {
 
   processedBlob = bestBlob;
   const finalKB = (processedBlob.size / 1024).toFixed(1);
-  outputSizeText.innerText = `${finalKB} KB (Target: ≤${maxKB} KB)`;
-  outputSizeText.style.color = '#16a34a';
+  outputStatusText.innerText = `${finalKB} KB (≤ ${maxKB} KB)`;
+  outputStatusText.parentElement.classList.add('accent');
 
   previewImg.src = URL.createObjectURL(processedBlob);
   downloadBtn.disabled = false;
 });
 
 /* ========================================================
-   7. DOWNLOAD + GTA SUBMIT SOUND
+   7. DOWNLOAD PROCESSOR
    ======================================================== */
 downloadBtn.addEventListener('click', () => {
   if (!processedBlob) return;
-
-  // GTA / Mission Passed Sound
-  SoundEngine.play('submit');
+  AudioSynth.play('download');
 
   const link = document.createElement('a');
   link.href = URL.createObjectURL(processedBlob);
-  link.download = `exam_${imgWidth.value}x${imgHeight.value}.jpg`;
+  link.download = `Exam_${imgWidth.value}x${imgHeight.value}.jpg`;
   link.click();
 });
